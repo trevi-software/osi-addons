@@ -67,8 +67,7 @@ class HelpdeskTicket(models.Model):
     @api.multi
     def voicent_start_campaign(self, call_line):
         for rec in self:
-            if call_line.helpdesk_ticket_stage_id.id \
-                    == rec.stage_id.id:
+            if call_line.helpdesk_ticket_stage_id.id == rec.stage_id.id:
                 # Generate the CSV file
                 fp = io.BytesIO()
                 writer = pycompat.csv_writer(fp, quoting=1)
