@@ -43,7 +43,10 @@ class HelpdeskTicket(models.Model):
                             fields.Datetime.now().strftime(
                                 '%Y-%m-%d-%H-%M-%S') + '.csv'
                         res2 = voicent_obj.exportResult(campaign, filename)
-                        field = res2['Notes']
+                        if res2:
+                            field = res2['Notes']
+                        else:
+                            raise RetryableJobError(res2)
                     else:
                         field = res.get(reply.reply_field)
                     if reply.reply_value in str(field):
