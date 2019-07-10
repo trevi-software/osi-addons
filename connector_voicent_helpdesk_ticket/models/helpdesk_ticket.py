@@ -17,8 +17,12 @@ class HelpdeskTicket(models.Model):
 
     @job
     @api.multi
-    def check_status_job(self, campaign, helpdesk_ticket,
-                         call_line):
+    def check_status_job(self, campaign, helpdesk_ticket, call_line):
+        return self.check_status_job(campaign, call_line)
+
+    @job
+    @api.multi
+    def check_status_job(self, campaign, call_line):
         for rec in self:
             voicent_obj = voicent.Voicent(
                 call_line.backend_id.host,
@@ -54,6 +58,11 @@ class HelpdeskTicket(models.Model):
     @job
     @api.multi
     def voicent_import_and_runcampaign(self, helpdesk_ticket, call_line):
+        return self.voicent_import_and_runcampaign(call_line)
+
+    @job
+    @api.multi
+    def voicent_import_and_runcampaign(self, call_line):
         for rec in self:
             if call_line.helpdesk_ticket_stage_id.id \
                     == rec.stage_id.id:
@@ -108,7 +117,6 @@ class HelpdeskTicket(models.Model):
                                     res.get('status')))
                     rec.with_delay().check_status_job(
                         res.get('camp_id'),
-                        rec,
                         call_line)
                 else:
                     message = _("""Call has been sent to <b>%s</b> but failed
@@ -134,5 +142,5 @@ class HelpdeskTicket(models.Model):
                             rec.parent_id is False):
                         rec.with_delay(
                             eta=line_rec.backend_id.next_call). \
-                            voicent_import_and_runcampaign(rec, line_rec)
+                            voicent_import_and_runcampaign(line_rec)
         return super(HelpdeskTicket, self).write(vals)
