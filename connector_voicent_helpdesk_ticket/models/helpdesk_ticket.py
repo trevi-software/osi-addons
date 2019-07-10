@@ -116,16 +116,19 @@ class HelpdeskTicket(models.Model):
                     <b>%s</b>""" % (call_line.backend_id.name,
                                     res.get('camp_id'),
                                     res.get('status')))
+                    rec.message_post(body=message)
                     rec.with_delay().voicent_check_status(res.get('camp_id'),
                                                           call_line)
                 else:
                     message = _("""Call has been sent to <b>%s</b> but failed
-                     with the following message: <b>%s</b>""" %
+                    with the following message: <b>%s</b>""" %
                                 (call_line.backend_id.name, res))
+                    rec.message_post(body=message)
+                    raise RetryableJobError(res)
             else:
                 message = _("Call has been cancelled because the stage has "
                             "changed.")
-            rec.message_post(body=message)
+                rec.message_post(body=message)
 
     @api.multi
     def write(self, vals):
