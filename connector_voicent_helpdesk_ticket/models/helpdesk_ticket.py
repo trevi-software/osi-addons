@@ -18,11 +18,11 @@ class HelpdeskTicket(models.Model):
     @job
     @api.multi
     def check_status_job(self, campaign, helpdesk_ticket, call_line):
-        return self.check_status_job(campaign, call_line)
+        return self.voicent_check_status(campaign, call_line)
 
     @job
     @api.multi
-    def check_status_job(self, campaign, call_line):
+    def voicent_check_status(self, campaign, call_line):
         for rec in self:
             voicent_obj = voicent.Voicent(
                 call_line.backend_id.host,
@@ -46,7 +46,7 @@ class HelpdeskTicket(models.Model):
                         field = res2['Notes']
                     else:
                         field = res.get(reply.reply_field)
-                    if reply.reply_value in field:
+                    if reply.reply_value in str(field):
                         ctx = dict(self.env.context or {})
                         ctx.update(
                             {'active_id': rec.id,
@@ -58,11 +58,11 @@ class HelpdeskTicket(models.Model):
     @job
     @api.multi
     def voicent_import_and_runcampaign(self, helpdesk_ticket, call_line):
-        return self.voicent_import_and_runcampaign(call_line)
+        return self.voicent_start_campaign(call_line)
 
     @job
     @api.multi
-    def voicent_import_and_runcampaign(self, call_line):
+    def voicent_start_campaign(self, call_line):
         for rec in self:
             if call_line.helpdesk_ticket_stage_id.id \
                     == rec.stage_id.id:
@@ -98,15 +98,13 @@ class HelpdeskTicket(models.Model):
                 write_file.write(fp.getvalue())
                 write_file.close()
                 # Connect to Voicent
-                voicent_obj = voicent.Voicent(
-                    call_line.backend_id.host,
-                    str(call_line.backend_id.port),
-                    call_line.backend_id.callerid,
-                    str(call_line.backend_id.line))
-                res = voicent_obj.importAndRunCampaign(
-                    file_name,
-                    call_line.msgtype,
-                    call_line.msginfo)
+                voicent_obj = voicent.Voicent(call_line.backend_id.host,
+                                              str(call_line.backend_id.port),
+                                              call_line.backend_id.callerid,
+                                              str(call_line.backend_id.line))
+                res = voicent_obj.importAndRunCampaign(file_name,
+                                                       call_line.msgtype,
+                                                       call_line.msginfo)
                 # Delete the file on the filesystem
                 shutil.rmtree(directory)
                 if res.get('camp_id'):
@@ -115,14 +113,12 @@ class HelpdeskTicket(models.Model):
                     <b>%s</b>""" % (call_line.backend_id.name,
                                     res.get('camp_id'),
                                     res.get('status')))
-                    rec.with_delay().check_status_job(
-                        res.get('camp_id'),
-                        call_line)
+                    rec.with_delay().voicent_check_status(res.get('camp_id'),
+                                                          call_line)
                 else:
                     message = _("""Call has been sent to <b>%s</b> but failed
                      with the following message: <b>%s</b>""" %
-                                (call_line.backend_id.name,
-                                 res))
+                                (call_line.backend_id.name, res))
             else:
                 message = _("Call has been cancelled because the stage has "
                             "changed.")
@@ -142,5 +138,5 @@ class HelpdeskTicket(models.Model):
                             rec.parent_id is False):
                         rec.with_delay(
                             eta=line_rec.backend_id.next_call). \
-                            voicent_import_and_runcampaign(line_rec)
+                            voicent_start_campaign(line_rec)
         return super(HelpdeskTicket, self).write(vals)
