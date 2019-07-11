@@ -42,11 +42,11 @@ class HelpdeskTicket(models.Model):
                             str(rec.id) + '-' + str(rec.stage_id.id) + '-' + \
                             fields.Datetime.now().strftime(
                                 '%Y-%m-%d-%H-%M-%S') + '.csv'
-                        res2 = voicent_obj.exportResult(campaign, filename)
-                        if res2:
+                        try:
+                            res2 = voicent_obj.exportResult(campaign, filename)
                             field = res2['Notes']
-                        else:
-                            raise RetryableJobError(res2)
+                        except TypeError:
+                            raise RetryableJobError()
                     else:
                         field = res.get(reply.reply_field)
                     if reply.reply_value in str(field):
