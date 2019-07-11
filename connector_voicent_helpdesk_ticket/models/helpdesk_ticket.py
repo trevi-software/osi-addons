@@ -46,7 +46,7 @@ class HelpdeskTicket(models.Model):
                             res2 = voicent_obj.exportResult(campaign, filename)
                             field = res2['Notes']
                         except TypeError:
-                            raise RetryableJobError()
+                            raise RetryableJobError(res2)
                     else:
                         field = res.get(reply.reply_field)
                     if reply.reply_value in str(field):
