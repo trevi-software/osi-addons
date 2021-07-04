@@ -11,7 +11,7 @@ class StockRequestOrder(models.Model):
                                          ondelete='cascade', index=True,
                                          copy=False)
 
-    @api.onchange('direction', 'helpdesk_ticket_id')
+    @api.onchange('warehouse_id', 'direction', 'helpdesk_ticket_id')
     def _onchange_location_id(self):
         super()._onchange_location_id()
         if self.helpdesk_ticket_id:
@@ -35,15 +35,15 @@ class StockRequestOrder(models.Model):
         if self.helpdesk_ticket_id:
             ticket = self.env['helpdesk.ticket'].browse(
                 self.helpdesk_ticket_id.id)
-            return {'name': ticket.name,
+            return {'name': ('#' + str(ticket.id)),
                     'helpdesk_ticket_id': ticket.id,
                     'move_type': 'direct'}
         else:
             return {}
 
     @api.multi
-    def _action_confirm(self):
-        if self.helpdesk_ticket_id:
+    def action_confirm(self):
+        if self.helpdesk_ticket_id and not self.procurement_group_id:
             ticket = self.env['helpdesk.ticket'].browse(
                 self.helpdesk_ticket_id.id)
             group = self.env['procurement.group'].search([
@@ -51,6 +51,6 @@ class StockRequestOrder(models.Model):
             if not group:
                 values = self._prepare_procurement_group_values()
                 group = self.env['procurement.group'].create(values)
-            self.procurement_group_id = group.id
+            self.procurement_group_id = group[0].id
             self.change_childs()
-        return super()._action_confirm()
+        return super().action_confirm()
